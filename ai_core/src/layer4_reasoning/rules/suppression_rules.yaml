@@ -1,0 +1,12 @@
+# Suppression rules - checked first, in order. First match wins.
+# condition is a Python expression evaluated against the event dict
+# (event_type, metadata.*, confidence, etc). Keep these simple and auditable.
+
+- name: staff_badge_visible
+  condition: "metadata.staff_badge_visible == true"
+
+- name: item_returned_to_visible_basket
+  condition: "event_type == 'item_disappeared' and metadata.reappeared_in_basket == true"
+
+- name: restock_pattern
+  condition: "metadata.movement_pattern == 'restock'"

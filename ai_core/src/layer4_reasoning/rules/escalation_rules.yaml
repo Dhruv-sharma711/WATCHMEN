@@ -1,0 +1,17 @@
+# Escalation rules - checked only if no suppression rule fired.
+# multiplier > 1.0 boosts the evidence contribution before it hits the accumulator.
+
+- name: weapon_near_register
+  condition: "event_type == 'weapon_detected' and metadata.zone == 'register'"
+  action: escalate
+  multiplier: 3.0
+
+- name: weapon_detected_anywhere
+  condition: "event_type == 'weapon_detected'"
+  action: escalate
+  multiplier: 2.0
+
+- name: concealment_small_high_value_item
+  condition: "event_type == 'item_disappeared' and metadata.reappeared_in_basket == false and metadata.item_high_value == true"
+  action: escalate
+  multiplier: 1.5
