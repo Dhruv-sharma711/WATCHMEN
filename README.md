@@ -1,34 +1,136 @@
-# VIGILIX
+# WATCHMEN
 
-AI-Powered Intelligent Surveillance and Emergency Response System
+**Neuro-Symbolic Temporal Risk-Accumulation Framework**
+
+---
 
 ## Overview
 
-VIGILIX is an AI-powered surveillance platform that transforms conventional CCTV systems into intelligent emergency detection systems. It combines computer vision, AI models, and a decision-making engine to detect emergencies, reduce false alarms, and notify users in real time.
+WATCHMEN is an AI-powered retail surveillance platform designed to assist security personnel by continuously monitoring shoppers throughout their entire visit. Unlike traditional CCTV analytics that classify isolated video clips, WATCHMEN maintains a behavioral memory for every shopper, accumulates risk over time, applies explainable symbolic reasoning, and verifies high-risk events before generating alerts.
 
-## Tech Stack
+The system aims to reduce false alarms while providing explainable, real-time threat detection for retail environments such as supermarkets, shopping malls, jewelry stores, and showrooms.
 
-- Frontend: React
-- Backend: Node.js + Express
-- AI: Python, OpenCV, YOLO
-- Database: MongoDB
+---
 
-## Project Structure
+## Key Features
+
+- Continuous shopper tracking across the entire visit
+- Multi-stage behavioral analysis
+- Adaptive Risk Accumulator
+- Neuro-Symbolic Decision Engine
+- Vision-Language Model (VLM) verification
+- Explainable AI decisions
+- Human-readable evidence timeline
+- Cost-aware intelligent alerting
+- Modular architecture for future research
+
+---
+
+## Project Architecture
 
 ```
-VIGILIX/
-├── ai-engine/
+WATCHMEN
+│
+├── ai_core/
+│   ├── configs/
+│   ├── datasets/
+│   ├── models/
+│   ├── src/
+│   │   ├── layer1_ingestion/
+│   │   ├── layer2_perception/
+│   │   ├── layer3_behaviour/
+│   │   ├── layer4_reasoning/
+│   │   ├── layer5_vlm_verdict/
+│   │   ├── layer6_explainability/
+│   │   └── utils/
+│   │
+│   ├── tests/
+│   └── requirements.txt
+│
 ├── backend/
-├── decision-engine/
 ├── frontend/
 └── README.md
 ```
 
-## Project Status
+---
 
-🚧 Initial project setup in progress.
+## Technology Stack
+
+### AI
+
+- Python
+- OpenCV
+- YOLO
+- NumPy
+- PyTorch
+
+### Backend
+
+- Node.js
+- Express.js
+
+### Frontend
+
+- React
+
+### Database
+
+- MongoDB
+
+---
+
+## AI Pipeline
+
+```
+Camera Feed
+      │
+      ▼
+Layer 1 — Video Ingestion
+      │
+      ▼
+Layer 2 — Object & Person Perception
+      │
+      ▼
+Layer 3 — Behaviour Understanding
+      │
+      ▼
+Layer 4 — Neuro-Symbolic Reasoning
+      │
+      ▼
+Layer 5 — VLM Verification
+      │
+      ▼
+Layer 6 — Explainability & Evidence Generation
+      │
+      ▼
+Backend API
+      │
+      ▼
+Frontend Dashboard
+```
+
+---
+
+## Current Status
+
+- ✅ Research completed
+- ✅ Architecture finalized
+- ✅ Repository restructured
+- 🚧 AI implementation in progress
+- 🚧 Backend integration in progress
+- 🚧 Frontend development in progress
+
+---
 
 ## Team
 
-- Dhruv Sharma
-- Team Members (To be added)
+- Dhruv Sharma — AI Research & Neuro-Symbolic Reasoning
+- Manisha — Perception & Behaviour Analysis
+- Mayank — Backend Development
+- Aditi — Frontend Development
+
+---
+
+## License
+
+This repository is part of a Final Year B.Tech research project.
