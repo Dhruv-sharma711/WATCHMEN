@@ -15,3 +15,8 @@
   condition: "event_type == 'item_disappeared' and metadata.reappeared_in_basket == false and metadata.item_high_value == true"
   action: escalate
   multiplier: 1.5
+
+- name: aggressive_pose_near_till
+  condition: "event_type == 'aggressive_pose' and metadata.zone == 'register'"
+  action: escalate
+  multiplier: 2.5

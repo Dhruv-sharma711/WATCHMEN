@@ -10,3 +10,14 @@
 
 - name: restock_pattern
   condition: "metadata.movement_pattern == 'restock'"
+
+# --- Gap 5 additions: ambiguous cases current benchmarks under-represent ---
+
+- name: item_returned_to_shelf
+  condition: "event_type == 'item_disappeared' and metadata.returned_to_shelf == true"
+
+- name: replica_or_toy_item
+  condition: "metadata.item_is_replica == true"
+
+- name: receipt_visible_at_exit
+  condition: "metadata.receipt_visible == true"
