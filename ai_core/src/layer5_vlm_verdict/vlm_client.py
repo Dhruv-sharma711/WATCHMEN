@@ -1,9 +1,11 @@
 """
 Layer 5 - VLM Client
 
-Abstract interface for the vision-language model call, plus a mock
+Abstract interface for the vision-language model call, a mock
 implementation so the rest of Layer 5 - and Layer 4's callback contract -
-can be built, tested, and demoed before a real model backend is wired in.
+can be built, tested, and demoed before a real model backend is wired in,
+and a real implementation (AnthropicVLMClient) that sends the evidence
+window to a Claude vision model.
 
 Prompt design follows Borodin et al.'s finding (Section 3.5): across six
 compact VLMs, the best score came from the shortest, plainest,
@@ -13,11 +15,13 @@ examples, or persona text to PROMPT_TEMPLATE below - that is a deliberate
 design choice made in Section 8.3/9.11, not an oversight.
 """
 
+import base64
 import random
+import re
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
-from .verdict_schema import EvidencePacket, VLMVerdict
+from .verdict_schema import EvidencePacket, VLMVerdict, VALID_VERDICTS
 
 PROMPT_TEMPLATE = """You are comparing two frames from a retail security camera.
 Category: {category}
@@ -42,6 +46,27 @@ def build_prompt(packet: EvidencePacket) -> str:
         contact_ts=contact.timestamp,
         resolution_ts=resolution.timestamp,
     )
+
+
+def parse_vlm_response(raw_text: str) -> Tuple[str, str]:
+    """Turn a raw model response into (verdict_label, rationale).
+
+    The prompt asks for exactly one label word followed by a short
+    rationale, but a real model won't always comply (extra whitespace,
+    markdown bolding, lower case, a missing label entirely). Any response
+    that doesn't clearly resolve to one of VALID_VERDICTS is coerced to
+    UNCERTAIN rather than guessed toward CONFIRMED or NORMAL - per the
+    Burden-of-Proof principle (Section 8.4/9.10), a parse failure must
+    fail toward human review, never toward silence.
+    """
+    text = (raw_text or "").strip()
+    match = re.match(r"^\**\s*(CONFIRMED|UNCERTAIN|NORMAL)\b[\s,:\-]*", text, re.IGNORECASE)
+    if match:
+        verdict = match.group(1).upper()
+        rationale = text[match.end():].strip() or "(model returned no rationale)"
+        return verdict, rationale
+
+    return "UNCERTAIN", f"unparseable model response, defaulting to UNCERTAIN: {text[:120]!r}"
 
 
 class VLMClient(ABC):
@@ -89,6 +114,86 @@ class MockVLMClient(VLMClient):
         return VLMVerdict(
             verdict=verdict,
             rationale=f"mock verdict from risk={packet.risk_score:.2f}, rule={packet.fired_rule}",
+            cited_frame_ids=[f.frame_id for f in packet.frames],
+            is_recheck=is_recheck,
+        )
+
+
+class FrameSource(ABC):
+    """Resolves a Layer 5 frame_id to raw image bytes.
+
+    Layers 1-3 don't expose real stored frames yet (see the NOTE at the
+    top of evidence_packager.py) - contact_frame_id/resolution_frame_id
+    are synthetic placeholders for now. This interface exists so
+    AnthropicVLMClient below can be written and tested today; once a real
+    frame store lands (e.g. Layer 1/7's short-retention evidence store),
+    only a new FrameSource implementation needs to be written - nothing
+    in AnthropicVLMClient changes.
+    """
+
+    @abstractmethod
+    def get_image(self, frame_id: str) -> Tuple[bytes, str]:
+        """Return (raw_image_bytes, media_type), e.g. (b"...", "image/jpeg")."""
+        raise NotImplementedError
+
+
+class AnthropicVLMClient(VLMClient):
+    """Real backend: sends the two-frame evidence window plus the fixed,
+    constrained-output prompt (PROMPT_TEMPLATE) to a Claude vision model.
+
+    Requires the `anthropic` package (add it to requirements.txt) and an
+    ANTHROPIC_API_KEY in the environment. Swap `model` for whichever
+    backend the team settles on - orchestration in layer5_engine.py
+    doesn't care which VLMClient implementation it holds.
+    """
+
+    def __init__(
+        self,
+        frame_source: FrameSource,
+        model: str = "claude-sonnet-5",
+        max_tokens: int = 200,
+    ):
+        import anthropic  # local import: keeps the SDK optional for tests/mocks
+
+        self.frame_source = frame_source
+        self.model = model
+        self.max_tokens = max_tokens
+        self._client = anthropic.Anthropic()
+
+    def query(self, packet: EvidencePacket, is_recheck: bool = False) -> VLMVerdict:
+        prompt = build_prompt(packet)
+
+        content = []
+        for frame in packet.frames:
+            image_bytes, media_type = self.frame_source.get_image(frame.frame_id)
+            content.append(
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": media_type,
+                        "data": base64.b64encode(image_bytes).decode("utf-8"),
+                    },
+                }
+            )
+        content.append({"type": "text", "text": prompt})
+
+        response = self._client.messages.create(
+            model=self.model,
+            max_tokens=self.max_tokens,
+            messages=[{"role": "user", "content": content}],
+        )
+        raw_text = "".join(
+            block.text for block in response.content if getattr(block, "type", None) == "text"
+        )
+
+        verdict_label, rationale = parse_vlm_response(raw_text)
+        if verdict_label not in VALID_VERDICTS:
+            verdict_label, rationale = "UNCERTAIN", f"unexpected label, defaulting to UNCERTAIN: {rationale}"
+
+        return VLMVerdict(
+            verdict=verdict_label,
+            rationale=rationale,
             cited_frame_ids=[f.frame_id for f in packet.frames],
             is_recheck=is_recheck,
         )

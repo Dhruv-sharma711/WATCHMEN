@@ -16,6 +16,13 @@ from typing import List
 # and coerce whatever a raw model response contains.
 VerdictLabel = str  # one of "CONFIRMED", "UNCERTAIN", "NORMAL"
 
+# The only three labels a VLM call is allowed to resolve to. Real
+# VLMClient implementations use this to validate/coerce a raw model
+# response (see vlm_client.parse_vlm_response) - an unparseable or
+# off-schema response must fail toward UNCERTAIN, never toward NORMAL or
+# CONFIRMED, per the Burden-of-Proof principle (Section 8.4/9.10).
+VALID_VERDICTS = {"CONFIRMED", "UNCERTAIN", "NORMAL"}
+
 
 @dataclass
 class EvidenceFrame:
